@@ -1,14 +1,30 @@
-import pool from '../env/mysqlConfig.js';
+const pool = require('../env/mysqlConfig');
 
-class MysqlService {
+class MySqlService {
   async query(sql, params) {
-    const [results] = await pool.execute(sql, params);
-    return results;
+    const connection = await pool.getConnection();
+    try {
+      const [results] = await connection.execute(sql, params);
+      return results;
+    } finally {
+      connection.release();
+    }
   }
 
-  async getConnection() {
-    return await pool.getConnection();
+  async transaction(operations) {
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      const results = await operations(connection);
+      await connection.commit();
+      return results;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   }
 }
 
-export default new MysqlService();
+module.exports = new MySqlService();

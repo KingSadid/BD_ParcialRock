@@ -1,0 +1,111 @@
+================================================================================
+DECISIONES DE DISENO Y TRANSFORMACION - DATASET C (ROCK)
+Parcial Practico: Analisis de Datos ETL
+================================================================================
+
+1. HALLAZGOS SOBRE CALIDAD E INCONSISTENCIAS
+--------------------------------------------------------------------------------
+
+1.1 Duplicacion de bandas por capitalizacion
+    - La banda 'Los Suziox' aparece con 3 variantes:
+      * 'Los Suziox'  (B001, TQ001, TQ003)
+      * 'LOS SUZIOX'  (B002, TQ002)
+      * 'los suziox'  (B003, TQ003)
+    - Misma entidad del mundo real, diferente representacion textual.
+    - Todas tienen identico ano_fundacion (2002), lo que confirma que son la misma banda.
+
+1.2 Inconsistencias en campo 'edad' de personas
+    - P001: 27 (int)           -> Valor numerico valido
+    - P002: null               -> Valor nulo explicito, edad desconocida
+    - P003: 0 (int)            -> Cero interpretado como 'desconocida/no proporcionada'
+    - P004: 'adulto' (string)  -> Valor categorico no numerico
+    - P005: campo ausente      -> No existe la propiedad en el objeto
+
+1.3 Datos heterogeneos en un solo arreglo
+    - 4 tipos de entidad mezclados: toque, banda, persona, asistencia
+    - Cada tipo tiene campos propios que no aplican a los demas
+    - Se requiere descomposicion en tablas relacionales
+
+1.4 Relaciones implicitas
+    - Los toques referencian bandas por nombre (string), no por ID
+    - Las asistencias referencian personas y toques por ID (correcto)
+    - Se requiere normalizacion de nombres de bandas a IDs
+
+2. DECISIONES DE MODELADO (Diagrama ER)
+--------------------------------------------------------------------------------
+
+Se diseñan exactamente 5 tablas para mantener el modelo limpio y normalizado:
+
+    events (toques)
+    -----------
+    id          VARCHAR(10) PRIMARY KEY
+    name        VARCHAR(255) NOT NULL
+    event_date  DATE NOT NULL
+    location    VARCHAR(255) NOT NULL
+
+    bands
+    -----------
+    id          VARCHAR(10) PRIMARY KEY
+    name        VARCHAR(255) NOT NULL UNIQUE
+    founded_year INT
+
+    people
+    -----------
+    id          VARCHAR(10) PRIMARY KEY
+    full_name   VARCHAR(255) NOT NULL
+    id_number   VARCHAR(20) NOT NULL UNIQUE
+    age         INT NULL
+    age_type    VARCHAR(20) NOT NULL DEFAULT 'unknown'
+
+    event_bands (relacion M:N evento-banda)
+    -----------
+    event_id    VARCHAR(10) NOT NULL
+    band_id     VARCHAR(10) NOT NULL
+    PRIMARY KEY (event_id, band_id)
+    FOREIGN KEY (event_id) REFERENCES events(id)
+    FOREIGN KEY (band_id) REFERENCES bands(id)
+
+    attendances (relacion M:N persona-evento)
+    -----------
+    id          VARCHAR(10) PRIMARY KEY
+    person_id   VARCHAR(10) NOT NULL
+    event_id    VARCHAR(10) NOT NULL
+    FOREIGN KEY (person_id) REFERENCES people(id)
+    FOREIGN KEY (event_id) REFERENCES events(id)
+
+3. REGLAS DE TRANSFORMACION (ETL)
+--------------------------------------------------------------------------------
+
+3.1 Normalizacion de bandas
+    - Se crea un mapa de normalizacion: nombre en minusculas sin espacios extra -> ID unico
+    - Se selecciona el nombre con formato titulo (Title Case) como canonical
+    - Ejemplo: 'LOS SUZIOX', 'los suziox' -> 'Los Suziox' (B001)
+    - Solo se insertan bandas unicas en la tabla bands
+
+3.2 Resolucion de edades
+    - Caso int > 0: age = valor, age_type = 'numeric'
+    - Caso null o campo ausente: age = NULL, age_type = 'unknown'
+    - Caso 0: age = NULL, age_type = 'unknown' (cero interpretado como dato faltante)
+    - Caso string: age = NULL, age_type = valor_string (ej: 'adulto')
+
+3.3 Mapeo de relaciones evento-banda
+    - Para cada toque, se recorre el array 'bandas'
+    - Se normaliza cada nombre de banda al ID canonical correspondiente
+    - Se inserta en event_bands la pareja (toque_id, banda_id)
+
+3.4 Mapeo de asistencias
+    - Se transfieren directamente desde las entradas tipo 'asistencia'
+    - Se valida existencia de persona y evento referenciados
+
+4. CRITERIOS DE IDENTIDAD DE ENTIDADES
+--------------------------------------------------------------------------------
+
+- Banda: Dos registros se refieren a la misma banda si su nombre coincide
+  al comparar en minusculas sin espacios extremos.
+  Se usa el primer ID encontrado como canonical.
+
+- Persona: Se identifica por cedula (id_number). En este dataset no hay duplicados.
+
+- Evento: Se identifica por id (TQ001, etc.). No hay duplicados.
+
+================================================================================

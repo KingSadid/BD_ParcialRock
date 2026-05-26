@@ -1,16 +1,13 @@
-import mysql from 'mysql2/promise';
-import dotenv from 'dotenv';
-
-dotenv.config();
+const mysql = require('mysql2/promise');
 
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'rock_local_db',
+  host: process.env.MYSQL_HOST || 'localhost',
+  user: process.env.MYSQL_USER || 'root',
+  password: process.env.MYSQL_PASSWORD || '',
+  database: process.env.MYSQL_DATABASE || 'local_rock_events',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
 });
 
-export default pool;
+module.exports = pool;

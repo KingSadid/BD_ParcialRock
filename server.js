@@ -1,17 +1,14 @@
-import express from 'express';
-import dotenv from 'dotenv';
-import testRoutes from './routes/test.routes.js';
+const http = require('http');
+const etlRoutes = require('./routes/etl.routes');
 
-dotenv.config();
+const PORT = process.env.PORT || 3000;
 
-const app = express();
-const port = process.env.PORT || 3000;
-
-app.use(express.json());
-app.use(express.static('public'));
-
-app.use('/api/test', testRoutes);
-
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+const server = http.createServer((request, response) => {
+  etlRoutes.handle(request, response);
 });
+
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+module.exports = server;
