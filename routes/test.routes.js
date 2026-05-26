@@ -1,9 +1,27 @@
-const express = require("express");
-const router = express.Router();
-const testDao = require("../dao/test.dao")
+import { Router } from 'express';
+import testDao from '../dao/test.dao.js';
 
-router.get('/', testDao.getAll);
-router.get('/:id', testDao.getById);
-router.post('/', testDao.create);
+const router = Router();
 
-module.exports = router;
+router.get('/health', async (req, res) => {
+  try {
+    const isDatabaseAlive = await testDao.testConnection();
+    if (!isDatabaseAlive) {
+      return res.status(500).json({ status: 'down', database: 'disconnected' });
+    }
+    return res.json({ status: 'up', database: 'connected' });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+router.post('/setup', async (req, res) => {
+  try {
+    await testDao.initializeSchema();
+    return res.status(201).json({ status: 'success', message: 'Database schema initialized successfully' });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+export default router;

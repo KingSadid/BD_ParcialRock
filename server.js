@@ -1,14 +1,17 @@
-const express = require("express");
-const testRoutes = require("./routes/test.routes");
+import express from 'express';
+import dotenv from 'dotenv';
+import testRoutes from './routes/test.routes.js';
 
-const PORT = 5000;
-const api = express();
+dotenv.config();
 
-api.use(express.json());
-api.use(express.static("public"));
+const app = express();
+const port = process.env.PORT || 3000;
 
-api.use("/test", testRoutes);
+app.use(express.json());
+app.use(express.static('public'));
 
-api.listen(PORT, ()=>{
-    console.log("Server running in http://localhost:5000")
+app.use('/api/test', testRoutes);
+
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });

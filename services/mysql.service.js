@@ -1,6 +1,14 @@
-const mysql = require('mysql2/promise');
-const config = require('../env/mysqlConfig');
+import pool from '../env/mysqlConfig.js';
 
-const pool = mysql.createPool(config);
+class MysqlService {
+  async query(sql, params) {
+    const [results] = await pool.execute(sql, params);
+    return results;
+  }
 
-module.exports = pool;
+  async getConnection() {
+    return await pool.getConnection();
+  }
+}
+
+export default new MysqlService();
