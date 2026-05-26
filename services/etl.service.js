@@ -33,6 +33,8 @@ class EtlService {
 
   async load(data) {
     await mysqlService.transaction(async () => {
+      await this.clearTables();
+
       await this.bandDao.saveAll(data.bands);
       console.log(`Loaded ${data.bands.length} bands`);
 
@@ -48,6 +50,15 @@ class EtlService {
       await this.attendanceDao.saveAll(data.attendances);
       console.log(`Loaded ${data.attendances.length} attendances`);
     });
+  }
+
+  async clearTables() {
+    await mysqlService.query('DELETE FROM attendances');
+    await mysqlService.query('DELETE FROM event_bands');
+    await mysqlService.query('DELETE FROM people');
+    await mysqlService.query('DELETE FROM events');
+    await mysqlService.query('DELETE FROM bands');
+    console.log('Cleared existing data from all tables');
   }
 }
 
